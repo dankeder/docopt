@@ -316,6 +316,18 @@ def test_pattern_fix_repeating_arguments():
             Either(Argument('N', []), OneOrMore(Argument('N', [])))
 
 
+def test_repeated_arguments():
+    oneormore = OneOrMore(Argument('N'))
+    oneormore.leave_atoms = 1
+    pattern = Required(oneormore, Argument('M'))
+
+    match_1 = pattern.match([Argument(None, 'a'), Argument(None, 'b'), Argument(None, 'c')])
+    assert match_1 == (True, [], [Argument('N', 'a'), Argument('N', 'b'), Argument('M', 'c')])
+
+    match_2 = pattern.match([Argument(None, 'a')])
+    assert match_2 == (False, [Argument(None, 'a')], [])
+
+
 def test_set():
     assert Argument('N') == Argument('N')
     assert set([Argument('N'), Argument('N')]) == set([Argument('N')])

@@ -245,10 +245,17 @@ class OptionsShortcut(Optional):
 
 class OneOrMore(BranchPattern):
 
+    def __init__(self, *children):
+        super(OneOrMore, self).__init__(*children)
+        self.leave_atoms = 0
+
     def match(self, left, collected=None):
         assert len(self.children) == 1
         collected = [] if collected is None else collected
-        l = left
+        if self.leave_atoms > 0:
+            l, lrest = left[:-self.leave_atoms], left[-self.leave_atoms:]
+        else:
+            l, lrest = left, []
         c = collected
         l_ = None
         matched = True
@@ -261,7 +268,7 @@ class OneOrMore(BranchPattern):
                 break
             l_ = l
         if times >= 1:
-            return True, l, c
+            return True, l + lrest, c
         return False, left, collected
 
 
@@ -390,12 +397,18 @@ def parse_expr(tokens, options):
 def parse_seq(tokens, options):
     """seq ::= ( atom [ '...' ] )* ;"""
     result = []
+    oneormore = None
     while tokens.current() not in [None, ']', ')', '|']:
         atom = parse_atom(tokens, options)
         if tokens.current() == '...':
-            atom = [OneOrMore(*atom)]
+            oneormore = OneOrMore(*atom)
+            atom = [oneormore]
             tokens.move()
         result += atom
+    leave = 0
+    if oneormore is not None:
+        oneormore.leave_atoms = len([x for x in result[result.index(oneormore)+1:] \
+                if type(oneormore.children[0]) == type(x)])
     return result
 
 
